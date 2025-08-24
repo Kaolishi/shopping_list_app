@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:shopping_list_app/data/dummy_items.dart';
+import 'package:shopping_list_app/widgets/new_item.dart';
 
 /// A stateless widget that displays a list of grocery items in a scrollable view.
 ///
@@ -11,9 +12,20 @@ import 'package:shopping_list_app/data/dummy_items.dart';
 /// - The item's name as the title
 /// - The quantity as trailing text
 
-class GroceryList extends StatelessWidget {
+class GroceryList extends StatefulWidget {
   /// Creates a [GroceryList] widget.
   const GroceryList({super.key});
+
+  @override
+  State<GroceryList> createState() => _GroceryListState();
+}
+
+class _GroceryListState extends State<GroceryList> {
+  void _addItem() {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (context) => const NewItem()));
+  }
 
   // Builds the widget's UI structure.
   @override
@@ -22,6 +34,7 @@ class GroceryList extends StatelessWidget {
       // App bar with static title
       appBar: AppBar(
         title: const Text('Your Groceries'),
+        actions: [IconButton(onPressed: _addItem, icon: const Icon(Icons.add))],
       ),
       // Main body containing the scrollable list of grocery items
       body: ListView.builder(
