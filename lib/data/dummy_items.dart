@@ -1,3 +1,4 @@
+// DEPRICATED
 // Sample grocery items for development and testing purposes.
 //
 // This file contains dummy data used to populate the shopping list during
