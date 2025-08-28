@@ -4,7 +4,13 @@
 /// for viewing and managing grocery items. Users can add new items via navigation
 /// to a form screen and remove items by swiping to dismiss.
 
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+
+import 'package:http/http.dart' as http;
+import 'package:shopping_list_app/data/categories.dart';
+
 import 'package:shopping_list_app/models/grocery_item.dart';
 import 'package:shopping_list_app/widgets/new_item.dart';
 
@@ -48,7 +54,65 @@ class _GroceryListState extends State<GroceryList> {
   ///
   /// This list starts empty and is populated when users add items
   /// through the new item form. Items can be removed by swiping.
-  final List<GroceryItem> _groceryItems = [];
+  List<GroceryItem> _groceryItems = [];
+  var _isLoading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadItems();
+  }
+
+  void _loadItems() async {
+    final url = Uri.https(
+      'shopping-app-746bd-default-rtdb.asia-southeast1.firebasedatabase.app',
+      'shopping-list.json',
+    );
+    try {
+      final response = await http.get(url);
+      if (response.statusCode >= 400) {
+        setState(() {
+          _error = 'Failed to fetch data.... Try again later.';
+        });
+      }
+
+      if (response.body == 'null') {
+        setState(() {
+          _isLoading = false;
+        });
+        return;
+      }
+
+      final Map<String, dynamic> listData = json.decode(
+        response.body,
+      );
+      List<GroceryItem> loadedItems = [];
+      for (final item in listData.entries) {
+        final category = categories.entries
+            .firstWhere(
+              (catItem) => catItem.value.name == item.value['category'],
+            )
+            .value;
+        loadedItems.add(
+          GroceryItem(
+            id: item.key,
+            name: item.value['name'],
+            quantity: item.value['quantity'],
+            category: category,
+          ),
+        );
+        setState(() {
+          _groceryItems = loadedItems;
+          _isLoading = false;
+        });
+      }
+    } catch (error) {
+      setState(() {
+        _error = 'Something went wrong... Please try again later';
+      });
+    }
+  }
 
   /// Navigates to the new item form and handles the returned result.
   ///
@@ -66,12 +130,10 @@ class _GroceryListState extends State<GroceryList> {
       MaterialPageRoute(builder: (context) => const NewItem()),
     );
 
-    // Exit early if user cancelled or didn't save an item
     if (newItem == null) {
       return;
     }
 
-    // Add the new item to the list and trigger UI rebuild
     setState(() {
       _groceryItems.add(newItem);
     });
@@ -87,8 +149,23 @@ class _GroceryListState extends State<GroceryList> {
   ///
   /// Parameters:
   /// - [item]: The [GroceryItem] to remove from the list
-  void _removeItem(GroceryItem item) {
-    _groceryItems.remove(item);
+  void _removeItem(GroceryItem item) async {
+    final index = _groceryItems.indexOf(item);
+
+    setState(() {
+      _groceryItems.remove(item);
+    });
+
+    final url = Uri.https(
+      'shopping-app-746bd-default-rtdb.asia-southeast1.firebasedatabase.app',
+      'shopping-list/${item.id}.json',
+    );
+
+    final response = await http.delete(url);
+
+    if (response.statusCode >= 400) {
+      _groceryItems.insert(index, item);
+    }
   }
 
   /// Builds the widget's UI structure.
@@ -112,6 +189,12 @@ class _GroceryListState extends State<GroceryList> {
     Widget content = const Center(
       child: Text('Wow... such empty'),
     );
+
+    if (_isLoading) {
+      content = const Center(
+        child: CircularProgressIndicator(),
+      );
+    }
 
     // Build list content if items exist
     if (_groceryItems.isNotEmpty) {
@@ -141,6 +224,12 @@ class _GroceryListState extends State<GroceryList> {
             trailing: Text(_groceryItems[index].quantity.toString()),
           ),
         ),
+      );
+    }
+
+    if (_error != null) {
+      content = Center(
+        child: Text(_error!),
       );
     }
 

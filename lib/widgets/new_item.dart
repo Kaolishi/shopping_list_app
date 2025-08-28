@@ -4,7 +4,12 @@
 /// for users to create new grocery items. The form includes fields for item
 /// name, quantity, and category selection with proper validation and state management.
 
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+
+import 'package:http/http.dart' as http;
+
 import 'package:shopping_list_app/data/categories.dart';
 import 'package:shopping_list_app/models/catagory.dart';
 import 'package:shopping_list_app/models/grocery_item.dart';
@@ -69,6 +74,8 @@ class _NewItemState extends State<NewItem> {
   /// and organization of the item in the main list.
   var _selectedCategory = categories[Categories.vegetables]!;
 
+  var _isSending = false;
+
   /// Validates and saves the form, then creates a new grocery item.
   ///
   /// This method:
@@ -81,16 +88,40 @@ class _NewItemState extends State<NewItem> {
   /// validation error messages to the user.
   ///
   /// The created item uses the current timestamp as a unique ID.
-  void _saveItem() {
+  void _saveItem() async {
     // Validate all form fields
     if (_formKey.currentState!.validate()) {
       // Save form state to update instance variables
       _formKey.currentState!.save();
-
+      setState(() {
+        _isSending = true;
+      });
       // Create and return new grocery item
+      final url = Uri.https(
+        'shopping-app-746bd-default-rtdb.asia-southeast1.firebasedatabase.app',
+        'shopping-list.json',
+      );
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(
+          {
+            'name': _enteredName,
+            'quantity': _enteredQuantity,
+            'category': _selectedCategory.name,
+          },
+        ),
+      );
+
+      final Map<String, dynamic> responseData = json.decode(response.body);
+
+      if (!context.mounted) {
+        return;
+      }
+
       Navigator.of(context).pop(
         GroceryItem(
-          id: DateTime.now().toString(), // Use timestamp as unique ID
+          id: responseData['name'],
           name: _enteredName,
           quantity: _enteredQuantity,
           category: _selectedCategory,
@@ -229,16 +260,24 @@ class _NewItemState extends State<NewItem> {
                 children: [
                   // Reset button - clears all form fields
                   TextButton(
-                    onPressed: () {
-                      _formKey.currentState!.reset();
-                    },
+                    onPressed: _isSending
+                        ? null
+                        : () {
+                            _formKey.currentState!.reset();
+                          },
                     child: const Text('Reset'),
                   ),
 
                   // Save button - validates and creates item
                   ElevatedButton(
-                    onPressed: _saveItem,
-                    child: const Text('Add Item'),
+                    onPressed: _isSending ? null : _saveItem,
+                    child: _isSending
+                        ? const SizedBox(
+                            height: 16,
+                            width: 16,
+                            child: CircularProgressIndicator(),
+                          )
+                        : const Text('Add Item'),
                   ),
                 ],
               ),
