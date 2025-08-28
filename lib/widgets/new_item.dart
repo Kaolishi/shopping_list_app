@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 
 import 'package:http/http.dart' as http;
 
+import 'package:shopping_list_app/config/app_config.dart';
 import 'package:shopping_list_app/data/categories.dart';
 import 'package:shopping_list_app/models/catagory.dart';
 import 'package:shopping_list_app/models/grocery_item.dart';
@@ -97,10 +98,7 @@ class _NewItemState extends State<NewItem> {
         _isSending = true;
       });
       // Create and return new grocery item
-      final url = Uri.https(
-        'shopping-app-746bd-default-rtdb.asia-southeast1.firebasedatabase.app',
-        'shopping-list.json',
-      );
+      final url = AppConfig.buildFirebaseUrl('shopping-list.json');
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},

@@ -9,6 +9,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 
 import 'package:http/http.dart' as http;
+import 'package:shopping_list_app/config/app_config.dart';
 import 'package:shopping_list_app/data/categories.dart';
 
 import 'package:shopping_list_app/models/grocery_item.dart';
@@ -65,10 +66,7 @@ class _GroceryListState extends State<GroceryList> {
   }
 
   void _loadItems() async {
-    final url = Uri.https(
-      'shopping-app-746bd-default-rtdb.asia-southeast1.firebasedatabase.app',
-      'shopping-list.json',
-    );
+    final url = AppConfig.buildFirebaseUrl('shopping-list.json');
     try {
       final response = await http.get(url);
       if (response.statusCode >= 400) {
@@ -156,10 +154,7 @@ class _GroceryListState extends State<GroceryList> {
       _groceryItems.remove(item);
     });
 
-    final url = Uri.https(
-      'shopping-app-746bd-default-rtdb.asia-southeast1.firebasedatabase.app',
-      'shopping-list/${item.id}.json',
-    );
+    final url = AppConfig.buildFirebaseUrl('shopping-list/${item.id}.json');
 
     final response = await http.delete(url);
 
